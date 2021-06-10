@@ -2,9 +2,29 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 from urllib.parse import urlparse
-from .models import Bookmarks
+from .models import Bookmarks, Folders
 from sites.models import Sites
 from sites.serializers import SiteSerializers
+
+
+class FoldersSerializers(serializers.ModelSerializer):
+
+    created_at = serializers.DateTimeField(read_only=True)
+    updated_at = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = Folders
+        exclude = ['user']
+
+    def create(self, validated_data):
+        '''
+            send object from the current user a,
+            When creating a new Folder
+        '''
+        user = self.context['request'].user  # get user login object
+        folder = Folders.objects.create(
+            **validated_data, user=user)
+        return folder
 
 
 class BookmarkSerializers(serializers.ModelSerializer):
@@ -12,13 +32,13 @@ class BookmarkSerializers(serializers.ModelSerializer):
     description = serializers.CharField(required=False)
     thumbnails = serializers.ImageField(allow_empty_file=True, required=False)
     site = SiteSerializers(read_only=True)
-    created_at = serializers.DateTimeField(read_only=True)
-    updated_at = serializers.DateTimeField(read_only=True)
-    deleted_at = serializers.DateTimeField(read_only=True)
+    folder = FoldersSerializers(read_only=True)
+    folder_id = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = Bookmarks
         exclude = ['user']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at']
 
     def create(self, validated_data):
         '''
@@ -26,14 +46,18 @@ class BookmarkSerializers(serializers.ModelSerializer):
             When creating a new bookmark
         '''
         user = self.context['request'].user  # get user login object
+
         url_parse = urlparse(validated_data['url'])  # parse url
         # set scheme and url name only
         base_url = f"{url_parse.scheme}://{url_parse.netloc}"
         site = self._get_site_objects_or_create(
             base_url)  # get object from site table
 
+        # get folder objects
+        folder = Folders.objects.get(pk=validated_data['folder_id'])
+
         bookmark = Bookmarks.objects.create(
-            **validated_data, user=user, site=site)
+            **validated_data, user=user, site=site, folder=folder)
         return bookmark
 
     def _get_site_objects_or_create(self, url):
