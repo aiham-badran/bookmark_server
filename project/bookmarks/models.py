@@ -4,7 +4,7 @@ from sites.models import Sites
 
 
 def get_path_file(instance, filename):
-    image_path = f"bookmarks/{instance.user.username}/thumbnails/{filename}"
+    image_path = f"bookmarks/{instance.user.id}/thumbnails/{filename}"
     return image_path
 
 
@@ -18,7 +18,8 @@ class Bookmarks(models.Model):
     important = models.BooleanField(null=True, blank=True, default=False)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     site = models.ForeignKey(Sites, on_delete=models.CASCADE)
-    folder = models.ForeignKey('Folders', on_delete=models.CASCADE)
+    folder = models.ForeignKey(
+        'Folders', on_delete=models.DO_NOTHING, null=True, blank=True, default=None)
     created_at = models.DateTimeField(auto_now=True)
     updated_at = models.DateTimeField(auto_now_add=True)
     deleted_at = models.DateTimeField(null=True, blank=True)

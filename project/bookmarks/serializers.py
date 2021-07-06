@@ -33,7 +33,8 @@ class BookmarkSerializers(serializers.ModelSerializer):
     thumbnails = serializers.ImageField(allow_empty_file=True, required=False)
     site = SiteSerializers(read_only=True)
     folder = FoldersSerializers(read_only=True)
-    folder_id = serializers.IntegerField(write_only=True)
+    folder_id = serializers.IntegerField(
+        write_only=True, required=False)
 
     class Meta:
         model = Bookmarks
@@ -54,7 +55,12 @@ class BookmarkSerializers(serializers.ModelSerializer):
             base_url)  # get object from site table
 
         # get folder objects
-        folder = Folders.objects.get(pk=validated_data['folder_id'])
+        # check if has folder id and has valid data get the folder
+        if 'folder_id' in validated_data.keys() and validated_data['folder_id']:
+            folder = Folders.objects.get(pk=validated_data['folder_id'])
+        # if not has folder id  set folder none
+        else:
+            folder = None
 
         bookmark = Bookmarks.objects.create(
             **validated_data, user=user, site=site, folder=folder)
